@@ -7,7 +7,7 @@ import { Block } from "./block";
 import { MemoryPool } from "./memorypool";
 import { Validator } from "./validate";
 import { coinbaseTX } from "./coinbase";
-import { doubleSHA256 } from "./utils";
+import { doubleSHA256, reverseBytes } from "./utils";
 
 export const BLOCK_SUBSIDY = 1250000000;
 
@@ -22,20 +22,12 @@ class MineBlock {
   get duration(): number {
     return this.ended - this.started;
   }
-
-  reverseBytes(hexString: string): string {
-    if (hexString.length % 2 !== 0) {
-      throw new Error("Hexadecimal string length must be even.");
-    }
-    return hexString.match(/.{2}/g)?.reverse()?.join("") || "";
-  }
-
   async start(): Promise<void> {
     const header = this.block.headerBuffer();
     this.block.hash = doubleSHA256(header).toString("hex");
     console.log(chalk.blue("Nonce"), " ", chalk.bgBlueBright("Block Header"));
     while (
-      BigInt("0x" + this.reverseBytes(this.block.hash)) >
+      BigInt("0x" + reverseBytes(this.block.hash)) >
         this.block.difficulty &&
       this.block.nonce < this.MAX_NONCE
     ) {
@@ -56,7 +48,6 @@ class Miner {
   private validTransactions: BlockTransaction[] = [];
 
   constructor(private memoryPool: MemoryPool) {}
-
   async start(chain: Blockchain): Promise<void> {
     const coinbase = coinbaseTX();
     const validTransactions = this.getHighPriorityTransactions();
@@ -91,8 +82,7 @@ class Miner {
     this.validTransactions = validator.validateBatch(transactionsToValidate);
     return this.validTransactions;
   }
-
-  private writeOutputFile(block: Block, serializeCoinbase: string): void {
+ private writeOutputFile(block: Block, serializeCoinbase: string): void {
     const txids = block.transactions.map((tx) => tx.txid);
     const reversedTxids = txids.map(
       (txid) => txid.match(/.{2}/g)?.reverse()?.join("") || ""
@@ -105,7 +95,6 @@ class Miner {
 }
 
 const blockchain = new Blockchain();
-console.log(blockchain);
 const memoryPool = new MemoryPool("./mempool");
 const miner = new Miner(memoryPool);
 miner.start(blockchain);

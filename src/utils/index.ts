@@ -110,3 +110,10 @@ export function sha256ripemd160(data: Uint8Array): Uint8Array {
   const ripemd160Hash = createHash("ripemd160").update(sha256Hash).digest();
   return Uint8Array.from(ripemd160Hash);
 }
+
+export const reverseBytes = (hexString: string): string => {
+  if (hexString.length % 2 !== 0) {
+    throw new Error("Hexadecimal string length must be even.");
+  }
+  return hexString.match(/.{2}/g)?.reverse()?.join("") || "";
+};
