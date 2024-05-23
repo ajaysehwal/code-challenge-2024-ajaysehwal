@@ -1,27 +1,4 @@
 "use strict";
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -31,9 +8,13 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.Miner = exports.MineBlock = exports.BLOCK_SUBSIDY = void 0;
-const fs = __importStar(require("fs"));
+exports.BLOCK_SUBSIDY = void 0;
+const fs_1 = __importDefault(require("fs"));
+const chalk_1 = __importDefault(require("chalk"));
 const blockchain_1 = require("./blockchain");
 const block_1 = require("./block");
 const memorypool_1 = require("./memorypool");
@@ -58,25 +39,27 @@ class MineBlock {
         if (hexString.length % 2 !== 0) {
             throw new Error("Hexadecimal string length must be even.");
         }
-        const reversedHexString = ((_b = (_a = hexString.match(/.{2}/g)) === null || _a === void 0 ? void 0 : _a.reverse()) === null || _b === void 0 ? void 0 : _b.join("")) || "";
-        return reversedHexString;
+        return ((_b = (_a = hexString.match(/.{2}/g)) === null || _a === void 0 ? void 0 : _a.reverse()) === null || _b === void 0 ? void 0 : _b.join("")) || "";
     }
     start() {
         return __awaiter(this, void 0, void 0, function* () {
             const header = this.block.headerBuffer();
             this.block.hash = (0, utils_1.doubleSHA256)(header).toString("hex");
-            while (BigInt('0x' + this.reverseBytes(this.block.hash)) > this.block.difficulty &&
+            console.log(chalk_1.default.blue("Nonce"), " ", chalk_1.default.bgBlueBright("Block Header"));
+            while (BigInt("0x" + this.reverseBytes(this.block.hash)) >
+                this.block.difficulty &&
                 this.block.nonce < this.MAX_NONCE) {
                 this.block.nonce++;
                 header.writeUInt32LE(this.block.nonce, 80 - 4);
                 this.block.hash = (0, utils_1.doubleSHA256)(header).toString("hex");
                 this.hashes++;
+                console.log(chalk_1.default.blue(this.block.nonce), chalk_1.default.bgGreen(this.block.hash));
             }
-            console.log("Block mined", this.block.hash, `in ${this.hashes} iterations`);
+            console.log(chalk_1.default.green(`Block mined ${this.block.hash} in ${this.hashes} iterations`));
+            this.chain.addBlock(this.block);
         });
     }
 }
-exports.MineBlock = MineBlock;
 class Miner {
     constructor(memoryPool) {
         this.memoryPool = memoryPool;
@@ -85,32 +68,43 @@ class Miner {
     start(chain) {
         return __awaiter(this, void 0, void 0, function* () {
             const coinbase = (0, coinbase_1.coinbaseTX)();
-            const validtransaction = this.getValidTransactions();
-            const block = new block_1.Block("0".repeat(64), validtransaction, BigInt(0x1f00ffff));
+            const validTransactions = this.getHighPriorityTransactions();
+            const block = new block_1.Block("0".repeat(64), validTransactions, BigInt(0x1f00ffff));
             const { serializeCoinbase } = block.addCoinbaseTransaction(coinbase);
             const mineBlock = new MineBlock(chain, block);
             yield mineBlock.start();
-            chain.addBlock(block);
-            const txids = block.transactions.map((tx) => tx.txid);
-            const reversedTxids = txids.map((txid) => { var _a, _b; return ((_b = (_a = txid.match(/.{2}/g)) === null || _a === void 0 ? void 0 : _a.reverse()) === null || _b === void 0 ? void 0 : _b.join("")) || ""; });
-            const output = `${block
-                .headerBuffer()
-                .toString("hex")}\n${serializeCoinbase}\n${reversedTxids.join("\n")}`;
-            fs.writeFileSync("output.txt", output);
+            this.writeOutputFile(block, serializeCoinbase);
         });
     }
+    getHighPriorityTransactions() {
+        const transactions = this.getValidTransactions();
+        const transactionsWithFees = transactions.map((tx) => ({
+            tx,
+            fee: Number(tx.fee),
+        }));
+        const sortedTransactions = transactionsWithFees
+            .sort((a, b) => b.fee - a.fee)
+            .slice(0, 2800)
+            .map((txWithFee) => txWithFee.tx);
+        return sortedTransactions;
+    }
     getValidTransactions() {
-        const transactionsToValidate = [];
-        this.memoryPool.getTransactions().forEach((tx) => {
-            transactionsToValidate.push(tx);
-        });
+        const transactionsToValidate = this.memoryPool.getTransactions();
         const validator = new validate_1.Validator();
         this.validTransactions = validator.validateBatch(transactionsToValidate);
         return this.validTransactions;
     }
+    writeOutputFile(block, serializeCoinbase) {
+        const txids = block.transactions.map((tx) => tx.txid);
+        const reversedTxids = txids.map((txid) => { var _a, _b; return ((_b = (_a = txid.match(/.{2}/g)) === null || _a === void 0 ? void 0 : _a.reverse()) === null || _b === void 0 ? void 0 : _b.join("")) || ""; });
+        const output = `${block
+            .headerBuffer()
+            .toString("hex")}\n${serializeCoinbase}\n${reversedTxids.join("\n")}`;
+        fs_1.default.writeFileSync("output.txt", output);
+    }
 }
-exports.Miner = Miner;
 const blockchain = new blockchain_1.Blockchain();
+console.log(blockchain);
 const memoryPool = new memorypool_1.MemoryPool("./mempool");
 const miner = new Miner(memoryPool);
 miner.start(blockchain);

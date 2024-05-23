@@ -208,7 +208,7 @@ export class Transaction {
       weight: this.getWeightUnit(),
       vbytes: this.getVirualBytes(),
       bytes: this.getbytes(),
-      fee:this.isCoinbase()? 0 : this.calculatefee(),
+      fee: this.isCoinbase() ? 0 : this.calculatefee(),
       ...this.clone(),
     };
   }
@@ -320,7 +320,10 @@ export class Transaction {
       : this.serialize().length / 2;
   }
   public getWeightUnit() {
-    return this.serialize().length/2 * 3 + this.serializeWithWitness().length/2*1;
+    return (
+      (this.serialize().length / 2) * 3 +
+      (this.serializeWithWitness().length / 2) * 1
+    );
   }
   public getVirualBytes() {
     return this.getWeightUnit() / 4;
@@ -439,4 +442,3 @@ export class Transaction {
     );
   }
 }
-

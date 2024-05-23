@@ -1,7 +1,11 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Validator = void 0;
 const scripts_1 = require("./scripts");
+const chalk_1 = __importDefault(require("chalk"));
 class Validator {
     constructor() {
         this.inputs = [];
@@ -18,6 +22,7 @@ class Validator {
         this.check = [];
     }
     validateBatch(transactions) {
+        console.log(chalk_1.default.green(`start validation with ${transactions.length}`));
         const validTransactions = [];
         for (const transaction of transactions) {
             this.inputs = transaction.vin;
@@ -27,8 +32,10 @@ class Validator {
             if (this.start(transaction)) {
                 this.ValidTXCount++;
                 validTransactions.push(transaction.getTx());
+                console.log(chalk_1.default.green("valid"));
             }
             else {
+                console.log(chalk_1.default.red("invalid transaction find"));
                 this.InValidTXCount++;
             }
         }

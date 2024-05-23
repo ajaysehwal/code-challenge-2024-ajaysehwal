@@ -1,6 +1,7 @@
 import { BlockTransaction, TxIn, TxOut } from "./interface";
 import { Transaction, Vin, Vout } from "./transaction";
 import { BitcoinScript } from "./scripts";
+import chalk from "chalk";
 export class Validator {
   private inputs: Vin[] = [];
   private outputs: Vout[] = [];
@@ -15,6 +16,7 @@ export class Validator {
   public InValidTXCount: number = 0;
   private check: string[] = [];
   public validateBatch(transactions: Transaction[]): BlockTransaction[] {
+    console.log(chalk.green(`start validation with ${transactions.length}`));
     const validTransactions: BlockTransaction[] = [];
     for (const transaction of transactions) {
       this.inputs = transaction.vin;
@@ -24,7 +26,9 @@ export class Validator {
       if (this.start(transaction)) {
         this.ValidTXCount++;
         validTransactions.push(transaction.getTx());
+        console.log(chalk.green("valid"));
       } else {
+        console.log(chalk.red("invalid transaction find"));
         this.InValidTXCount++;
       }
     }

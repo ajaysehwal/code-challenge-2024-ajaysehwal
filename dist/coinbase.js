@@ -1,7 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.coinbaseTX = void 0;
-const _1 = require(".");
+const index_js_1 = require("./index.js");
 const transaction_1 = require("./transaction");
 const coinbaseTX = () => {
     const coinbase = new transaction_1.Transaction({
@@ -29,7 +29,7 @@ const coinbaseTX = () => {
         vout: [
             {
                 scriptpubkey: "76a914edf10a7fac6b32e24daa5305c723f3de58db1bc888ac",
-                value: _1.BLOCK_SUBSIDY,
+                value: index_js_1.BLOCK_SUBSIDY,
                 scriptpubkey_address: "",
                 scriptpubkey_type: "",
                 scriptpubkey_asm: "",

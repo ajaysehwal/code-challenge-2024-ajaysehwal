@@ -41,7 +41,6 @@ class Block {
         writer.writeUint32(this.timestamp);
         writer.writeUint32(Number(this.bits));
         writer.writeUint32(this.nonce);
-        console.log(buffer.toString("hex"));
         return buffer;
     }
     createTransaction(tx) {

@@ -1,4 +1,4 @@
-import { BLOCK_SUBSIDY } from ".";
+import { BLOCK_SUBSIDY } from "./index.js";
 import { Transaction } from "./transaction";
 
 export const coinbaseTX = () => {
